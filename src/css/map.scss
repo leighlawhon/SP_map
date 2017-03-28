@@ -23,3 +23,33 @@ div.tooltip {
 	left:800px;
 	top:350px;
 }
+.incomplete{
+	fill: #ccc;
+}
+.soft_match{
+	fill: red;
+}
+.very_high{
+	fill: #B1CFBD
+}
+.high{
+	fill:#2C6543
+}
+.upper_middle{
+	fill:#819498
+}
+.lower_middle{
+	fill:#2D4D53
+}
+.low{
+	fill:#D5B276
+}
+.very_low{
+	fill:#B97E1A
+}
+.graticule {
+  fill: none;
+  stroke: #777;
+  stroke-width: .5px;
+  stroke-opacity: .5;
+}

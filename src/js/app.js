@@ -1,8 +1,8 @@
+require('../css/map.scss');
+
 import * as d3 from 'd3';
 import * as d3Projection from 'd3-geo-projection';
-import { each } from 'lodash';
-
-require('../css/map.scss');
+import { forEach, find, last, findKey } from 'lodash';
 
 //Width and height of map
 const width = 960;
@@ -13,15 +13,10 @@ const projection = d3Projection.geoWinkel3().translate([
   width / 2,
   height / 2
 ]) // translate to center of screen
-  .scale([150]); // scale things down so see entire US
+  .scale([150]); // scale things down so see entire globe
   // Define path generator
-const path = d3.geoPath() // path generator that will convert GeoJSON to SVG paths
-  .projection(projection); // tell path generator to use albersUsa projection
-
-// Define linear scale for output
-const color = d3
-  .scaleLinear()
-  .range(["rgb(213,222,217)", "rgb(69,173,168)", "rgb(84,36,55)", "rgb(217,91,67)"]);
+const path = d3.geoPath()
+  .projection(projection);
 
 const legendText = ["Cities Lived", "States Lived", "States Visited", "Nada"];
 
@@ -37,31 +32,78 @@ const div = d3
   .append("div")
   .attr("class", "tooltip").style("opacity", 0);
 
-// Load in the SP 2017 data
-d3.csv("2017map.csv", function(spi) {
-  color.domain([0,1,2,3]); // setting the range of the input data
-  // Load GeoJSON data and merge with states data
-  d3.json("countries.geo.json", function(country) {
-    console.log(country, spi);
-    // Loop through each country
-    // Bind the data to the SVG and create one path per GeoJSON feature
-    svg.selectAll("path")
-      .data(country.features)
-      .enter()
-      .append("path")
-      .attr("d", path)
-      .style("stroke", "#fff")
-      .style("stroke-width", "1")
-      .style("fill", function(d) {
-        // Get data value
-        // const value = d.properties.visited;
-        // if (value) {
-        //   //If value exists…
-        //   return color(value);
-        // } else {
-        //   //If value is undefined…
-        //   return "rgb(213,222,217)";
-        // }
-      });
+Promise
+  .all(['countries.geo.json', '2017map.csv']
+    .map((url) =>{
+      return fetch(url)
+        .then(function(response) {
+          if(response.ok){
+            switch (last(response.url.split('.'))) {
+              case 'csv':
+                return response.text();
+                break;
+              case 'json':
+                return response.json();
+                break;
+              default:
+                response.text();
+            }
+          }else{
+            return Promise.reject(response.status)
+          }
+      })
+    })
+  )
+  .then(res => {
+    const spiJSON = csvJSON(res[1]);
+    drawMap(spiJSON, res[0]);
+  })
+
+function drawMap (spi, countries) {
+  const spiData = spi;
+  var graticule = d3.geoGraticule();
+  svg.append('path')
+    .datum(graticule)
+    .attr("class", "graticule")
+    .attr("d", path);
+  svg.selectAll("path")
+    .data(countries.features)
+    .enter()
+    .append("path")
+    .attr("d", path)
+    .style("stroke", "#fff")
+    .style("stroke-width", "1")
+    .attr("class", (d) => {
+      const spiCountry = spiData[d.properties.name.toLowerCase()];
+      if(spiCountry) {
+         return spiCountry.tier.replace(/\s/g, '_').toLowerCase()
+      }else{
+        const softMatch = countryNameMatch(spiData, d.properties.name.toLowerCase());
+        if (softMatch) {
+          return 'soft_match'
+        }
+        return 'incomplete'
+      }
   });
-});
+}
+function csvJSON(csv){
+  const lines=csv.split("\n");
+  const result = {};
+  const headers=lines[0].split(",");
+  const bodylines = lines;
+  bodylines.shift()
+  forEach(bodylines, (line) => {
+    const obj = {};
+	  const currentline=line.split(",");
+	  forEach(headers,(header, i) => {
+		  obj[header] = currentline[i] ;
+	  });
+    result[currentline[0].toLowerCase()] = obj;
+  });
+  return result; //JSON
+}
+function countryNameMatch(spiData, country) {
+  return findKey(spiData, (i) => {
+    return country.includes(i.country.toLowerCase());
+  })
+}
