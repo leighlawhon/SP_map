@@ -2,7 +2,7 @@ require('../css/map.scss');
 
 import * as d3 from 'd3';
 import * as d3Projection from 'd3-geo-projection';
-import { forEach, find, last, findKey } from 'lodash';
+import { forEach, find, last, findKey, contains } from 'lodash';
 
 //Width and height of map
 const width = 960;
@@ -61,11 +61,26 @@ Promise
 
 function drawMap (spi, countries) {
   const spiData = spi;
-  var graticule = d3.geoGraticule();
-  svg.append('path')
-    .datum(graticule)
-    .attr("class", "graticule")
-    .attr("d", path);
+  // uncomment if you want lat long lines
+  // var graticule = d3.geoGraticule();
+  // svg.append('path')
+  //   .datum(graticule)
+  //   .attr("class", "graticule")
+  //   .attr("d", path);
+  // soft match was done because the country names from the sahpe files didn't match the SPI names. I altered the country.geo.json to match SP. This should be checked again in the following years.
+  let count_countries = 0,
+    count_soft_match = 0,
+    count_incomplete = 0;
+  let tiers = {
+    low: [],
+    very_low: [],
+    high: [],
+    very_high: [],
+    upper_middle: [],
+    lower_middle: []
+  }
+  // used to check that nothing is missed
+  let soft_match_list = [];
   svg.selectAll("path")
     .data(countries.features)
     .enter()
@@ -74,17 +89,35 @@ function drawMap (spi, countries) {
     .style("stroke", "#fff")
     .style("stroke-width", "1")
     .attr("class", (d) => {
-      const spiCountry = spiData[d.properties.name.toLowerCase()];
+      const d_country = d.properties.name.replace(/\s/gi, '_').toLowerCase();
+      const spiCountry = spiData[d_country];
       if(spiCountry) {
-         return spiCountry.tier.replace(/\s/g, '_').toLowerCase()
+        count_countries++;
+        const tier = spiCountry.tier.replace(/\s/g, '_').toLowerCase();
+        if(tiers[tier]){
+          tiers[tier].push(spiCountry.country);
+        }
+        return tier
       }else{
-        const softMatch = countryNameMatch(spiData, d.properties.name.toLowerCase());
+        const softMatch = countryNameMatch(spiData, d_country);
         if (softMatch) {
+          count_soft_match++;
+          soft_match_list.push(d_country);
           return 'soft_match'
         }
+        count_incomplete++;
         return 'incomplete'
       }
-  });
+    })
+    .call( () => {
+      // counts are done to check the accuracy of the map
+      console.log(count_countries, "matched");
+      console.log(count_soft_match, "soft match");
+      console.log(soft_match_list, "soft match list");
+      console.log(count_incomplete, "incomplete");
+      console.log(tiers);
+      console.log(spiData);
+    })
 }
 function csvJSON(csv){
   const lines=csv.split("\n");
@@ -98,12 +131,18 @@ function csvJSON(csv){
 	  forEach(headers,(header, i) => {
 		  obj[header] = currentline[i] ;
 	  });
-    result[currentline[0].toLowerCase()] = obj;
+    const spi_country = currentline[0].toLowerCase().replace(/ /gi, '_');
+    // console.log(spi_country());
+    if (spi_country) result[spi_country] = obj;
+
   });
+
   return result; //JSON
 }
 function countryNameMatch(spiData, country) {
   return findKey(spiData, (i) => {
-    return country.includes(i.country.toLowerCase());
+    if(i.country !== country){
+      return country.includes(i.country);
+    }
   })
 }
