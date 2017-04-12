@@ -128,27 +128,27 @@ function drawMap (spi, countries) {
         return '#ccc'
       }
     })
-    // .attr("class", (d) => {
-    //   const d_country = d.properties.name.replace(/\s/gi, '_').toLowerCase();
-    //   const spiCountry = spiData[d_country];
-    //   if(spiCountry) {
-    //     count_countries++;
-    //     const tier = spiCountry.tier.replace(/\s/g, '_').toLowerCase();
-    //     if(tiers[tier].countries){
-    //       tiers[tier].countries.push(spiCountry.country);
-    //     }
-    //     return tier
-    //   }else{
-    //     const softMatch = countryNameMatch(spiData, d_country);
-    //     if (softMatch) {
-    //       count_soft_match++;
-    //       soft_match_list.push(d_country);
-    //       return 'soft_match'
-    //     }
-    //     count_incomplete++;
-    //     return 'incomplete'
-    //   }
-    // })
+    .attr("class", (d) => {
+      const d_country = d.properties.name.replace(/\s/gi, '_').toLowerCase();
+      const spiCountry = spiData[d_country];
+      if(spiCountry) {
+        count_countries++;
+        const tier = spiCountry.tier.replace(/\s/g, '_').toLowerCase();
+        if(tiers[tier].countries){
+          tiers[tier].countries.push(spiCountry.country);
+        }
+        return tier
+      }else{
+        const softMatch = countryNameMatch(spiData, d_country);
+        if (softMatch) {
+          count_soft_match++;
+          soft_match_list.push(d_country);
+          return 'soft_match'
+        }
+        count_incomplete++;
+        return 'incomplete'
+      }
+    })
 
     .call( () => {
       // counts are done to check the accuracy of the map
