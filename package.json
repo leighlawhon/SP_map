@@ -5,7 +5,9 @@
   "scripts": {
     "start": "webpack-dev-server",
     "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "author": "Leigh Lawhon <leighlawhon@gmail.com>",
   "license": "",
@@ -33,6 +35,8 @@
     "d3": "^4.7.3",
     "d3-geo": "^1.6.3",
     "d3-geo-projection": "^1.2.2",
-    "lodash": "^4.17.4"
-  }
+    "lodash": "^4.17.4",
+    "snyk": "^1.317.0"
+  },
+  "snyk": true
 }
